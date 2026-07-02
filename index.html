@@ -223,6 +223,16 @@
         let isSubscribed = localStorage.getItem(storageKey) === 'true';
         updateSubUI();
 
+        // Tag with OneSignal if subscribed
+        if (isSubscribed && window.OneSignal) {
+            OneSignal.push(function() {
+                if (OneSignal.User) {
+                    OneSignal.User.addTag("merchant_id", storeId);
+                    console.log("Tagged user on load with merchant_id:", storeId);
+                }
+            });
+        }
+
         function updateSubUI() {
             const btn = document.getElementById('subscribe-btn');
             const title = document.getElementById('sub-status-title');
@@ -276,6 +286,10 @@
                     if (permission === 'granted' || permission === true) {
                         isSubscribed = true;
                         localStorage.setItem(storageKey, 'true');
+                        if (OneSignal.User) {
+                            OneSignal.User.addTag("merchant_id", storeId);
+                            console.log("Tagged user on subscription with merchant_id:", storeId);
+                        }
                         updateSubUI();
                         showSimulatedCampaign(
                             "OneSignal Connected! 🔔", 

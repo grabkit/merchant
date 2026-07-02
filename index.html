@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Connect Hub</title>
+    <!-- Tailwind CSS for high-fidelity responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for standard modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for gorgeous typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .monospace {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+            transform: translateY(-1px);
+        }
+        /* Custom alert animation */
+        @keyframes slideIn {
+            from { transform: translateY(-100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-in {
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col justify-between py-6 px-4">
+
+    <!-- Active Broadcast Campaign Banner (Simulated) -->
+    <div id="campaign-banner" class="hidden fixed top-4 left-4 right-4 z-50">
+        <div class="glass-panel p-4 rounded-2xl border border-violet-500/30 flex items-start gap-3 shadow-2xl shadow-violet-500/10 animate-slide-in">
+            <div class="bg-violet-500/20 text-violet-400 p-2.5 rounded-xl border border-violet-500/20">
+                <i class="fa-solid fa-bullhorn text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold tracking-wider text-violet-400 uppercase">Live Announcement</span>
+                    <button onclick="closeCampaign()" class="text-slate-400 hover:text-slate-200 transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+                <h4 id="campaign-title" class="font-bold text-slate-100 mt-0.5 text-sm">Special Store Deal!</h4>
+                <p id="campaign-text" class="text-slate-300 text-xs mt-1 leading-relaxed">Check out our exciting offers today!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="w-full max-w-md mx-auto flex-1 flex flex-col justify-center space-y-6">
+        
+        <!-- Header Branding & Store Profile -->
+        <div class="text-center space-y-3">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-wide">
+                <i class="fa-solid fa-circle-check text-xs"></i> Verified Store Connect
+            </div>
+            
+            <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-xl shadow-violet-900/40 border border-violet-400/20">
+                <i class="fa-solid fa-shop text-3xl text-white"></i>
+            </div>
+            
+            <div class="space-y-1">
+                <h1 id="store-name" class="text-2xl font-extrabold tracking-tight text-white">Loading Store...</h1>
+                <p id="store-id-label" class="monospace text-xs text-slate-400">Store ID: loading...</p>
+            </div>
+        </div>
+
+        <!-- Connection Card -->
+        <div class="glass-panel p-6 rounded-3xl space-y-5">
+            <div class="flex items-center justify-between">
+                <div class="space-y-0.5">
+                    <h3 class="font-bold text-slate-100">Smart Notifications</h3>
+                    <p class="text-xs text-slate-400">Get instant alerts and pay bills</p>
+                </div>
+                <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            </div>
+
+            <!-- Tabs/Sections inside Card -->
+            <div class="space-y-4">
+                <!-- Status/Connect Section -->
+                <div id="connection-box" class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+                            <i class="fa-solid fa-bell-ring"></i>
+                        </div>
+                        <div>
+                            <p id="sub-status-title" class="text-sm font-semibold">Keep Updated</p>
+                            <p id="sub-status-desc" class="text-[11px] text-slate-400">Subscribe for custom deals & updates</p>
+                        </div>
+                    </div>
+                    <button id="subscribe-btn" onclick="toggleSubscription()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 transition-colors duration-200">
+                        Subscribe
+                    </button>
+                </div>
+
+                <!-- Simulated Bill / Quick Pay Form -->
+                <div class="space-y-3 border-t border-slate-800/60 pt-4">
+                    <h4 class="text-xs font-bold tracking-wider text-slate-400 uppercase">Quick Bill Payment</h4>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1.5 font-medium">Customer Name</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
+                                    <i class="fa-solid fa-user"></i>
+                                </span>
+                                <input type="text" id="customer-name" placeholder="Enter your name" class="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-200 focus:outline-none focus:border-violet-500/50 transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1.5 font-medium">Payment Amount (₹)</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₹</span>
+                                <input type="number" id="payment-amount" placeholder="0.00" class="w-full bg-slate-900/40 border border-slate-800 rounded-xl py-3 pl-9 pr-4 text-sm text-slate-200 font-semibold focus:outline-none focus:border-violet-500/50 transition">
+                            </div>
+                        </div>
+
+                        <button onclick="simulatePayment()" class="w-full glow-button bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-shield-check"></i> Pay Bill Online
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Widget -->
+        <div class="text-center">
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+                Powered by <span class="font-semibold text-slate-400">Ping Soundbox Gateway</span>.<br>
+                All browser-scanned transactions are processed securely.
+            </p>
+        </div>
+
+    </main>
+
+    <!-- Footer copyright info -->
+    <footer class="w-full text-center mt-6">
+        <p class="text-[10px] text-slate-600">&copy; 2026 Ping Soundbox Systems. All rights reserved.</p>
+    </footer>
+
+    <!-- Script to handle URL arguments, mock payments and interactive UI states -->
+    <script>
+        // Parse the Store ID and Store Name from URL parameters
+        // Example URL: merchant.html?id=pingstore&name=Ping+Store
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 1. Fallback parameters if not supplied:
+        // Try to get them from URL, or extract from path / URL string.
+        let storeId = urlParams.get('id') || urlParams.get('pa') || '';
+        let storeName = urlParams.get('name') || urlParams.get('pn') || '';
+
+        // If storeId is still empty, parse it from the path or window location
+        if (!storeId) {
+            // Check if there is a hash or if we can extract from URL
+            const pathParts = window.location.pathname.split('/');
+            const lastPart = pathParts[pathParts.length - 1];
+            if (lastPart && lastPart.includes('.')) {
+                // e.g., index.html
+                storeId = "pingstore";
+            } else {
+                storeId = lastPart || "pingstore";
+            }
+        }
+        
+        // Clean store name
+        storeId = decodeURIComponent(storeId).trim();
+        if (storeId.includes('@')) {
+            storeId = storeId.substringBefore('@');
+        }
+        
+        if (!storeName) {
+            // Capitalize and format store ID as the default name
+            storeName = storeId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        } else {
+            storeName = decodeURIComponent(storeName);
+        }
+
+        // Apply to DOM
+        document.getElementById('store-name').innerText = storeName;
+        document.getElementById('store-id-label').innerText = `Store ID: ${storeId}`;
+        document.title = `${storeName} - Customer Connect Hub`;
+
+        // Load or initialize subscription status from localStorage
+        const storageKey = `sub_status_${storeId}`;
+        let isSubscribed = localStorage.getItem(storageKey) === 'true';
+        updateSubUI();
+
+        function updateSubUI() {
+            const btn = document.getElementById('subscribe-btn');
+            const box = document.getElementById('connection-box');
+            const title = document.getElementById('sub-status-title');
+            const desc = document.getElementById('sub-status-desc');
+
+            if (isSubscribed) {
+                btn.innerText = "Subscribed";
+                btn.className = "px-4 py-2 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20";
+                title.innerText = "Connected to Store";
+                title.className = "text-sm font-semibold text-emerald-400";
+                desc.innerText = "You will receive real-time updates and deals!";
+            } else {
+                btn.innerText = "Subscribe";
+                btn.className = "px-4 py-2 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 transition-colors duration-200";
+                title.innerText = "Keep Updated";
+                title.className = "text-sm font-semibold text-slate-100";
+                desc.innerText = "Subscribe for custom deals & updates";
+            }
+        }
+
+        function toggleSubscription() {
+            isSubscribed = !isSubscribed;
+            localStorage.setItem(storageKey, isSubscribed ? 'true' : 'false');
+            updateSubUI();
+
+            // Fire an elegant system message alert
+            if (isSubscribed) {
+                showSimulatedCampaign(
+                    "Subscription Successful!", 
+                    `Welcome to ${storeName}! You have successfully subscribed to receive our live broadcast campaigns and payment receipts.`
+                );
+            }
+        }
+
+        // Simulate Quick Bill Payment and alert Soundbox
+        function simulatePayment() {
+            const nameInput = document.getElementById('customer-name').value.trim();
+            const amountInput = document.getElementById('payment-amount').value.trim();
+
+            if (!amountInput || parseFloat(amountInput) <= 0) {
+                alert("Please enter a valid payment amount.");
+                return;
+            }
+
+            const customerName = nameInput || "Web Customer";
+            const amount = parseFloat(amountInput).toFixed(2);
+
+            // Here we show an beautiful interactive receipt layout
+            alert(`🎉 Payment of ₹${amount} successful!\n\nThank you, ${customerName}. Your receipt has been logged. The merchant's Soundbox will play your transaction announcement instantly!`);
+            
+            // Optional clear of form inputs
+            document.getElementById('payment-amount').value = '';
+        }
+
+        // Simulated Announcement triggers
+        function showSimulatedCampaign(title, text) {
+            document.getElementById('campaign-title').innerText = title;
+            document.getElementById('campaign-text').innerText = text;
+            document.getElementById('campaign-banner').classList.remove('hidden');
+            
+            // Auto hide after 8 seconds
+            setTimeout(closeCampaign, 8000);
+        }
+
+        function closeCampaign() {
+            document.getElementById('campaign-banner').classList.add('hidden');
+        }
+
+        // Check for mock notifications periodically to simulate a real broadcast!
+        setTimeout(() => {
+            if (isSubscribed) {
+                showSimulatedCampaign(
+                    "Exclusive Offer! 🏷️", 
+                    `Get up to 20% off on your next purchase at ${storeName}. Present this screen at checkout!`
+                );
+            }
+        }, 5000);
+
+    </script>
+</body>
+</html>

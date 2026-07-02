@@ -216,6 +216,100 @@
 
     </main>
 
+    <!-- Real-time Verification Modal -->
+    <div id="verify-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-3xl border border-violet-500/20 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse"></div>
+                    <h3 class="font-bold text-base text-slate-100">Web Push Verification Wizard</h3>
+                </div>
+                <button onclick="closeVerifyModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content/Steps -->
+            <div class="mt-5 space-y-4">
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    To connect real notifications from <span class="text-violet-400 font-bold" id="verify-store-name">Store</span>, we are running live checks on your browser's push capabilities.
+                </p>
+
+                <!-- Check Steps Container -->
+                <div class="space-y-3">
+                    <!-- Step 1 -->
+                    <div id="step-1-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
+                        <div id="step-1-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot animate-pulse"></i></div>
+                        <div class="space-y-0.5 min-w-0 flex-1">
+                            <h4 class="text-xs font-bold text-slate-200">1. OneSignal Web SDK Load</h4>
+                            <p id="step-1-desc" class="text-[10px] text-slate-400">Verifying if OneSignal core scripts are active on the page.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div id="step-2-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
+                        <div id="step-2-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
+                        <div class="space-y-0.5 min-w-0 flex-1">
+                            <h4 class="text-xs font-bold text-slate-200">2. Browser Push Permission</h4>
+                            <p id="step-2-desc" class="text-[10px] text-slate-400">Requesting and checking if notification permissions are granted.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div id="step-3-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
+                        <div id="step-3-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
+                        <div class="space-y-0.5 min-w-0 flex-1">
+                            <h4 class="text-xs font-bold text-slate-200">3. Service Worker Registration</h4>
+                            <p id="step-3-desc" class="text-[10px] text-slate-400">Checking active OneSignal Service Worker at the subfolder scope.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div id="step-4-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
+                        <div id="step-4-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
+                        <div class="space-y-0.5 min-w-0 flex-1">
+                            <h4 class="text-xs font-bold text-slate-200">4. OneSignal Server Push Subscription</h4>
+                            <p id="step-4-desc" class="text-[10px] text-slate-400">Requesting a unique Push Subscription ID from OneSignal servers.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div id="step-5-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
+                        <div id="step-5-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
+                        <div class="space-y-0.5 min-w-0 flex-1">
+                            <h4 class="text-xs font-bold text-slate-200">5. Customer Tagging (merchant_id)</h4>
+                            <p id="step-5-desc" class="text-[10px] text-slate-400">Linking your browser profile with this merchant's customer tag.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Display / Next Step Guidance -->
+                <div id="verify-feedback" class="p-4 rounded-2xl bg-rose-950/20 border border-rose-900/40 hidden">
+                    <div class="flex gap-2.5 items-start">
+                        <span class="text-rose-400 mt-0.5 text-xs"><i class="fa-solid fa-circle-exclamation"></i></span>
+                        <div class="space-y-1">
+                            <h5 class="text-xs font-extrabold text-rose-300 uppercase tracking-wider" id="feedback-title">Validation Blocked</h5>
+                            <p class="text-[11px] text-slate-300 leading-relaxed font-normal" id="feedback-desc">
+                                We found an issue in the subscription chain. Please review the details.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button in Modal -->
+                <div class="pt-2 flex gap-3">
+                    <button id="modal-retry-btn" onclick="runSubscriptionVerification()" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate animate-spin"></i> Running Verification...
+                    </button>
+                    <button id="modal-action-btn" onclick="closeVerifyModal()" class="py-3 px-5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer copyright info -->
     <footer class="w-full text-center mt-6">
         <p class="text-[10px] text-slate-600">&copy; 2026 Ping Soundbox Systems. All rights reserved.</p>
@@ -367,6 +461,18 @@
             }
         });
 
+        function openVerifyModal() {
+            const modal = document.getElementById('verify-modal');
+            document.getElementById('verify-store-name').innerText = storeName;
+            modal.classList.remove('hidden');
+            runSubscriptionVerification();
+        }
+
+        function closeVerifyModal() {
+            const modal = document.getElementById('verify-modal');
+            modal.classList.add('hidden');
+        }
+
         async function toggleSubscription() {
             if (isSubscribed) {
                 // If unsubscribing, simply revert state
@@ -378,81 +484,234 @@
                     } catch (e) { console.error(e); }
                 }
                 updateSubUI();
+                console.log("Unsubscribed from store successfully.");
                 return;
             }
 
-            // Try OneSignal subscription first if active
-            if (window.OneSignal && OneSignal.Notifications) {
+            // Open the verification wizard to guide the user step-by-step!
+            openVerifyModal();
+        }
+
+        async function runSubscriptionVerification() {
+            const retryBtn = document.getElementById('modal-retry-btn');
+            retryBtn.disabled = true;
+            retryBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Verifying...`;
+            document.getElementById('verify-feedback').classList.add('hidden');
+
+            const setStepStatus = (step, status, descText) => {
+                const card = document.getElementById(`step-${step}-card`);
+                const icon = document.getElementById(`step-${step}-icon`);
+                const desc = document.getElementById(`step-${step}-desc`);
+
+                if (descText) desc.innerText = descText;
+
+                if (status === 'pending') {
+                    card.className = "p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-start gap-3 transition-all";
+                    icon.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-violet-400"></i>`;
+                } else if (status === 'success') {
+                    card.className = "p-3.5 rounded-2xl bg-emerald-950/25 border border-emerald-500/20 flex items-start gap-3 transition-all";
+                    icon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i>`;
+                } else if (status === 'fail') {
+                    card.className = "p-3.5 rounded-2xl bg-rose-950/25 border border-rose-500/20 flex items-start gap-3 transition-all";
+                    icon.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 animate-bounce"></i>`;
+                } else if (status === 'idle') {
+                    card.className = "p-3.5 rounded-2xl bg-slate-900/40 border border-slate-800/40 flex items-start gap-3 opacity-60 transition-all";
+                    icon.innerHTML = `<i class="fa-solid fa-circle-dot text-slate-500"></i>`;
+                }
+            };
+
+            const showFeedback = (title, desc) => {
+                document.getElementById('feedback-title').innerText = title;
+                document.getElementById('feedback-desc').innerHTML = desc;
+                document.getElementById('verify-feedback').classList.remove('hidden');
+                
+                // Restore button
+                retryBtn.disabled = false;
+                retryBtn.className = "flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-all flex items-center justify-center gap-2";
+                retryBtn.innerHTML = `<i class="fa-solid fa-rotate"></i> Retry Checks`;
+            };
+
+            // Initialize all step displays to idle/grey
+            for (let i = 1; i <= 5; i++) {
+                setStepStatus(i, 'idle');
+            }
+
+            // --- STEP 1: ONE SIGNAL WEB SDK CHECK ---
+            setStepStatus(1, 'pending');
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            if (!window.OneSignal) {
+                setStepStatus(1, 'fail', 'OneSignal CDN SDK scripts are missing on this page.');
+                showFeedback(
+                    "OneSignal SDK Not Found",
+                    "The OneSignal Web SDK script failed to load or has been blocked.<br/><br/>" +
+                    "<strong>Steps to fix:</strong><br/>" +
+                    "1. Disable any <strong>Ad-Blockers</strong> or content filters blocking <code>onesignal.com</code>.<br/>" +
+                    "2. Verify you have a stable network connection.<br/>" +
+                    "3. Check your browser's Developer Tools Console (F12) for any loading errors."
+                );
+                return;
+            }
+            setStepStatus(1, 'success', 'OneSignal Web SDK loaded successfully.');
+
+            // --- STEP 2: NOTIFICATION PERMISSION CHECK ---
+            setStepStatus(2, 'pending');
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            let permissionStatus = 'default';
+            if ('Notification' in window) {
+                permissionStatus = Notification.permission;
+            }
+
+            if (permissionStatus !== 'granted') {
                 try {
-                    const permission = await OneSignal.Notifications.requestPermission();
-                    if (permission === 'granted' || permission === true) {
-                        isSubscribed = true;
-                        localStorage.setItem(storageKey, 'true');
-                        if (OneSignal.User) {
-                            OneSignal.User.addTag("merchant_id", storeId);
-                            console.log("Tagged user on subscription with merchant_id:", storeId);
+                    console.log("Requesting browser notification permissions...");
+                    if (window.OneSignal && OneSignal.Notifications) {
+                        await OneSignal.Notifications.requestPermission();
+                    } else if ('Notification' in window) {
+                        await Notification.requestPermission();
+                    }
+                    permissionStatus = Notification.permission;
+                } catch (err) {
+                    console.error("Error requesting permission:", err);
+                }
+            }
+
+            if (permissionStatus !== 'granted') {
+                setStepStatus(2, 'fail', `Permission is currently "${permissionStatus}".`);
+                showFeedback(
+                    "Notification Permission Blocked",
+                    "The browser notification permission was denied or dismissed.<br/><br/>" +
+                    "<strong>Steps to fix:</strong><br/>" +
+                    "1. Click the <strong>Lock Icon (🔒)</strong> in the top left of your browser address bar.<br/>" +
+                    "2. Change <strong>Notifications</strong> permission from 'Block' to <strong>'Allow'</strong>.<br/>" +
+                    "3. Click 'Retry Checks' above."
+                );
+                return;
+            }
+            setStepStatus(2, 'success', 'Notification permissions are granted.');
+
+            // --- STEP 3: SERVICE WORKER INTEGRITY CHECK ---
+            setStepStatus(3, 'pending');
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            let isSWActive = false;
+            let activeSWUrl = "";
+
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    if (registrations && registrations.length > 0) {
+                        for (let r of registrations) {
+                            if (r.active) {
+                                const scriptName = r.active.scriptURL.split('/').pop();
+                                // Match if it contains OneSignal or sw.js
+                                if (scriptName.toLowerCase().includes('onesignal') || scriptName === 'sw.js') {
+                                    isSWActive = true;
+                                    activeSWUrl = scriptName;
+                                    break;
+                                }
+                            }
                         }
-                        updateSubUI();
-                        showSimulatedCampaign(
-                            "OneSignal Connected! 🔔", 
-                            "Web Push Notifications are active via OneSignal subscription manager."
-                        );
-                        return;
+                    }
+
+                    // If not registered, try dynamic registration
+                    if (!isSWActive) {
+                        console.log("Registering local Service Worker sw.js...");
+                        const reg = await navigator.serviceWorker.register('sw.js');
+                        if (reg) {
+                            isSWActive = true;
+                            activeSWUrl = "sw.js";
+                        }
                     }
                 } catch (e) {
-                    console.log("OneSignal error, falling back to local SW:", e);
+                    console.error("SW verification error:", e);
                 }
             }
 
-            // Request Notification permissions (local fallback)
-            if (!('Notification' in window)) {
-                alert("This browser does not support push notifications.");
-                isSubscribed = true;
-                localStorage.setItem(storageKey, 'true');
-                updateSubUI();
+            if (!isSWActive) {
+                setStepStatus(3, 'fail', 'No active Service Worker scope found.');
+                showFeedback(
+                    "Service Worker Setup Incomplete",
+                    "No active service worker script was detected. OneSignal requires a registered service worker file at your server path.<br/><br/>" +
+                    "<strong>Steps to fix:</strong><br/>" +
+                    "Ensure your GitHub repository root contains the <code>OneSignalSDKWorker.js</code> file (or <code>sw.js</code>) and that it is fully published."
+                );
                 return;
             }
+            setStepStatus(3, 'success', `Active Service Worker: ${activeSWUrl}`);
+
+            // --- STEP 4: ONESIGNAL SERVER CONNECTION & SUBSCRIPTION ---
+            setStepStatus(4, 'pending');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            let registrationId = null;
 
             try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    // Register Service Worker
-                    if ('serviceWorker' in navigator) {
-                        const registration = await navigator.serviceWorker.register('sw.js');
-                        console.log('Service Worker registered successfully:', registration);
-                        
-                        // Show a real browser notification as confirmation!
-                        setTimeout(() => {
-                            if (registration) {
-                                registration.showNotification(`Connected to ${storeName}!`, {
-                                    body: 'Smart Push Notifications are active. You will receive live campaigns here.',
-                                    icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
-                                    vibrate: [100, 50, 100]
-                                });
-                            }
-                        }, 500);
-                    }
-                    
-                    isSubscribed = true;
-                    localStorage.setItem(storageKey, 'true');
-                    updateSubUI();
-                    
-                    showSimulatedCampaign(
-                        "Notifications Enabled! 🔔", 
-                        `Thank you for subscribing! Real-time notifications and service worker registration are fully active.`
-                    );
-                } else if (permission === 'denied') {
-                    alert("Notification permissions were denied. Please enable them in your browser settings to receive store updates.");
-                } else {
-                    console.log('Notification permission status:', permission);
+                if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
+                    registrationId = OneSignal.User.PushSubscription.id;
                 }
-            } catch (error) {
-                console.error('Error enabling notifications:', error);
-                // Fallback local subscription
-                isSubscribed = true;
-                localStorage.setItem(storageKey, 'true');
-                updateSubUI();
+            } catch (err) {
+                console.error("Failed to query subscription ID:", err);
             }
+
+            if (!registrationId) {
+                setStepStatus(4, 'fail', 'OneSignal Push Subscription ID is missing.');
+                showFeedback(
+                    "OneSignal Server Registration Incomplete",
+                    "Your browser has permitted push, but the OneSignal server has not registered a dynamic connection ID yet.<br/><br/>" +
+                    "<strong>Steps to fix:</strong><br/>" +
+                    "1. Wait 5 seconds and click 'Retry Checks'.<br/>" +
+                    "2. If this is a new app, verify your <strong>OneSignal App ID</strong> is fully configured and matches your host domain."
+                );
+                return;
+            }
+            setStepStatus(4, 'success', `Subscription ID: ${registrationId.substring(0, 12)}...`);
+
+            // --- STEP 5: CUSTOMER MERCHANT TAGGING ---
+            setStepStatus(5, 'pending');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            let isTagged = false;
+            try {
+                if (window.OneSignal && OneSignal.User) {
+                    await OneSignal.User.addTag("merchant_id", storeId);
+                    isTagged = true;
+                }
+            } catch (err) {
+                console.error("Error setting merchant tag:", err);
+            }
+
+            if (!isTagged) {
+                setStepStatus(5, 'fail', `Failed to apply merchant_id: "${storeId}".`);
+                showFeedback(
+                    "Merchant Tag Registration Failed",
+                    "Could not link this store ID to your OneSignal profile.<br/><br/>" +
+                    "<strong>Steps to fix:</strong><br/>" +
+                    "Verify that the OneSignal SDK is fully initialized, wait 3 seconds, and retry."
+                );
+                return;
+            }
+            setStepStatus(5, 'success', `Successfully tagged with merchant_id = "${storeId}"`);
+
+            // --- ALL GREEN! ---
+            isSubscribed = true;
+            localStorage.setItem(storageKey, 'true');
+            updateSubUI();
+
+            retryBtn.disabled = false;
+            retryBtn.className = "flex-1 py-3 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center justify-center gap-2";
+            retryBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Connection Verified!`;
+
+            showSimulatedCampaign(
+                "Real Web Push Active! 🔔",
+                `You are fully registered to receive real notifications from ${storeName}.`
+            );
+
+            // Auto-close modal after success
+            setTimeout(() => {
+                closeVerifyModal();
+            }, 2000);
         }
 
         // Simulate Quick Bill Payment and alert Soundbox

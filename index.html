@@ -186,7 +186,7 @@
         // Clean store name
         storeId = decodeURIComponent(storeId).trim();
         if (storeId.includes('@')) {
-            storeId = storeId.substringBefore('@');
+            storeId = storeId.split('@')[0];
         }
         
         if (!storeName) {
@@ -208,7 +208,6 @@
 
         function updateSubUI() {
             const btn = document.getElementById('subscribe-btn');
-            const box = document.getElementById('connection-box');
             const title = document.getElementById('sub-status-title');
             const desc = document.getElementById('sub-status-desc');
 
@@ -227,17 +226,75 @@
             }
         }
 
-        function toggleSubscription() {
-            isSubscribed = !isSubscribed;
-            localStorage.setItem(storageKey, isSubscribed ? 'true' : 'false');
-            updateSubUI();
+        // Auto-register service worker on load if already subscribed
+        window.addEventListener('load', async () => {
+            if (isSubscribed && 'serviceWorker' in navigator) {
+                try {
+                    await navigator.serviceWorker.register('sw.js');
+                    console.log('Service Worker auto-registered on load.');
+                } catch (e) {
+                    console.error('SW auto-registration failed:', e);
+                }
+            }
+        });
 
-            // Fire an elegant system message alert
+        async function toggleSubscription() {
             if (isSubscribed) {
-                showSimulatedCampaign(
-                    "Subscription Successful!", 
-                    `Welcome to ${storeName}! You have successfully subscribed to receive our live broadcast campaigns and payment receipts.`
-                );
+                // If unsubscribing, simply revert state
+                isSubscribed = false;
+                localStorage.setItem(storageKey, 'false');
+                updateSubUI();
+                return;
+            }
+
+            // Request Notification permissions
+            if (!('Notification' in window)) {
+                alert("This browser does not support push notifications.");
+                isSubscribed = true;
+                localStorage.setItem(storageKey, 'true');
+                updateSubUI();
+                return;
+            }
+
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    // Register Service Worker
+                    if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.register('sw.js');
+                        console.log('Service Worker registered successfully:', registration);
+                        
+                        // Show a real browser notification as confirmation!
+                        setTimeout(() => {
+                            if (registration) {
+                                registration.showNotification(`Connected to ${storeName}!`, {
+                                    body: 'Smart Push Notifications are active. You will receive live campaigns here.',
+                                    icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+                                    vibrate: [100, 50, 100]
+                                });
+                            }
+                        }, 500);
+                    }
+                    
+                    isSubscribed = true;
+                    localStorage.setItem(storageKey, 'true');
+                    updateSubUI();
+                    
+                    showSimulatedCampaign(
+                        "Notifications Enabled! 🔔", 
+                        `Thank you for subscribing! Real-time notifications and service worker registration are fully active.`
+                    );
+                } else if (permission === 'denied') {
+                    alert("Notification permissions were denied. Please enable them in your browser settings to receive store updates.");
+                } else {
+                    console.log('Notification permission status:', permission);
+                }
+            } catch (error) {
+                console.error('Error enabling notifications:', error);
+                // Fallback local subscription
+                isSubscribed = true;
+                localStorage.setItem(storageKey, 'true');
+                updateSubUI();
             }
         }
 

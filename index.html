@@ -169,6 +169,51 @@
             </p>
         </div>
 
+        <!-- Real-time Diagnostic Console (Collapsible) -->
+        <div class="glass-panel p-5 rounded-3xl border border-violet-500/15 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-violet-400 animate-pulse text-xs"><i class="fa-solid fa-bug"></i></span>
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-300">Live Diagnostic Console</h3>
+                </div>
+                <button onclick="toggleDiagVisibility()" class="text-[10px] font-extrabold text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 px-2.5 py-1.5 rounded-lg transition-all border border-violet-500/20">
+                    Collapse/Expand Logs
+                </button>
+            </div>
+
+            <!-- Diagnostics Metrics -->
+            <div class="grid grid-cols-2 gap-3 text-xs leading-relaxed">
+                <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">OneSignal SDK</span>
+                    <span id="diag-sdk" class="font-mono text-amber-400 font-bold">Checking...</span>
+                </div>
+                <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">Push Permission</span>
+                    <span id="diag-perm" class="font-mono text-amber-400 font-bold">Checking...</span>
+                </div>
+                <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">Service Worker</span>
+                    <span id="diag-sw" class="font-mono text-amber-400 font-semibold truncate block">Checking...</span>
+                </div>
+                <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">Tag (merchant_id)</span>
+                    <span id="diag-tag" class="font-mono text-emerald-400 font-semibold truncate block">None</span>
+                </div>
+                <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80 col-span-2">
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">OneSignal Registration ID</span>
+                    <span id="diag-sub" class="font-mono text-slate-300 block truncate text-[11px]">Checking...</span>
+                </div>
+            </div>
+
+            <!-- Scrollable Console Logs -->
+            <div id="diag-logs-container" class="space-y-1.5">
+                <span class="text-[9px] uppercase font-bold tracking-wider text-slate-500 block">Live Event Trace (Errors & Actions)</span>
+                <div id="diag-logs" class="bg-black/60 border border-slate-900/90 rounded-2xl p-3 h-44 overflow-y-auto text-[10px] monospace leading-relaxed text-slate-300">
+                    <div class="text-violet-400">[System] Initializing Diagnostic Interceptor...</div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Footer copyright info -->
@@ -178,6 +223,63 @@
 
     <!-- Script to handle URL arguments, mock payments and interactive UI states -->
     <script>
+        // --- CONSOLE LOGGER INTERCEPTOR FOR ON-SCREEN VIEW ---
+        const oldLog = console.log;
+        const oldError = console.error;
+        const oldWarn = console.warn;
+
+        function addDiagLog(message, type = 'info') {
+            const logsContainer = document.getElementById('diag-logs');
+            if (!logsContainer) return;
+            const colors = {
+                'info': 'text-slate-300',
+                'success': 'text-emerald-400 font-medium',
+                'warn': 'text-amber-400 font-medium',
+                'error': 'text-rose-400 font-bold'
+            };
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `${colors[type] || 'text-slate-300'} mb-1 border-b border-slate-900/40 pb-1`;
+            div.innerHTML = `<span class="text-slate-500">[${time}]</span> ${message}`;
+            logsContainer.appendChild(div);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            oldLog.apply(console, args);
+            addDiagLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), 'info');
+        };
+
+        console.error = function(...args) {
+            oldError.apply(console, args);
+            addDiagLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            oldWarn.apply(console, args);
+            addDiagLog(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), 'warn');
+        };
+
+        // Window error listeners to catch uncaught crashes
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error(`JS Error: ${message} at ${source}:${lineno}`);
+            return false;
+        };
+        window.onunhandledrejection = function(event) {
+            console.error(`Unhandled Promise: ${event.reason}`);
+        };
+
+        function toggleDiagVisibility() {
+            const container = document.getElementById('diag-logs-container');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                console.log("Diagnostic logs section expanded.");
+            } else {
+                container.classList.add('hidden');
+                console.log("Diagnostic logs section collapsed.");
+            }
+        }
+
         // Parse the Store ID and Store Name from URL parameters
         // Example URL: merchant.html?id=pingstore&name=Ping+Store
         const urlParams = new URLSearchParams(window.location.search);
@@ -396,6 +498,110 @@
                 );
             }
         }, 5000);
+
+        // --- REAL-TIME DIAGNOSTIC RUNNER ---
+        async function runDiagnostics() {
+            const sdkStatus = document.getElementById('diag-sdk');
+            const permStatus = document.getElementById('diag-perm');
+            const swStatus = document.getElementById('diag-sw');
+            const subStatus = document.getElementById('diag-sub');
+            const tagStatus = document.getElementById('diag-tag');
+
+            if (!sdkStatus) return;
+
+            // 1. OneSignal SDK Check
+            if (window.OneSignal) {
+                sdkStatus.innerText = "Loaded (v16)";
+                sdkStatus.className = "font-mono text-emerald-400 font-bold";
+            } else {
+                sdkStatus.innerText = "Not Loaded";
+                sdkStatus.className = "font-mono text-rose-400 font-bold animate-pulse";
+            }
+
+            // 2. Notification Permission Check
+            if ('Notification' in window) {
+                const perm = Notification.permission;
+                permStatus.innerText = perm;
+                if (perm === 'granted') {
+                    permStatus.className = "font-mono text-emerald-400 font-bold";
+                } else if (perm === 'denied') {
+                    permStatus.className = "font-mono text-rose-400 font-bold";
+                } else {
+                    permStatus.className = "font-mono text-amber-400 font-bold";
+                }
+            } else {
+                permStatus.innerText = "Unsupported";
+                permStatus.className = "font-mono text-rose-400 font-bold";
+            }
+
+            // 3. Registered Service Worker Check
+            if ('serviceWorker' in navigator) {
+                try {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    if (regs && regs.length > 0) {
+                        let paths = [];
+                        for (let r of regs) {
+                            if (r.active) {
+                                paths.push(r.active.scriptURL.split('/').pop());
+                            }
+                        }
+                        swStatus.innerText = paths.length > 0 ? paths.join(', ') : "Inactive/Loading";
+                        swStatus.className = "font-mono text-emerald-400 font-semibold truncate block";
+                    } else {
+                        swStatus.innerText = "None active";
+                        swStatus.className = "font-mono text-amber-400 font-semibold";
+                    }
+                } catch (e) {
+                    swStatus.innerText = "Error: " + e.message;
+                    swStatus.className = "font-mono text-rose-400 font-bold";
+                }
+            } else {
+                swStatus.innerText = "Unsupported";
+                swStatus.className = "font-mono text-rose-400 font-bold";
+            }
+
+            // 4. OneSignal Registration Details
+            if (window.OneSignal) {
+                OneSignal.push(function() {
+                    try {
+                        const pushId = OneSignal.User && OneSignal.User.PushSubscription ? OneSignal.User.PushSubscription.id : null;
+                        const optedOut = OneSignal.User && OneSignal.User.PushSubscription ? OneSignal.User.PushSubscription.optedOut : false;
+                        
+                        if (pushId) {
+                            subStatus.innerText = `${pushId} ${optedOut ? '(Opted Out)' : '(Active)'}`;
+                            subStatus.className = optedOut ? "font-mono text-amber-400 text-[11px]" : "font-mono text-emerald-400 font-semibold text-[11px]";
+                        } else {
+                            subStatus.innerText = "Not registered with OneSignal Server yet";
+                            subStatus.className = "font-mono text-slate-400 text-[11px]";
+                        }
+
+                        // Tag checking
+                        if (storeId) {
+                            tagStatus.innerText = `merchant_id: "${storeId}"`;
+                            tagStatus.className = "font-mono text-emerald-400 font-semibold truncate block";
+                        } else {
+                            tagStatus.innerText = "No Store ID loaded";
+                            tagStatus.className = "font-mono text-rose-400 font-semibold";
+                        }
+                    } catch (e) {
+                        subStatus.innerText = "Check failed: " + e.message;
+                        subStatus.className = "font-mono text-rose-400 text-[11px]";
+                    }
+                });
+            } else {
+                subStatus.innerText = "SDK not initialized";
+                subStatus.className = "font-mono text-slate-500 text-[11px]";
+                tagStatus.innerText = "SDK not initialized";
+                tagStatus.className = "font-mono text-slate-500";
+            }
+        }
+
+        // Start diagnostic checks immediately and repeat every 2.5 seconds
+        setTimeout(() => {
+            console.log("Diagnostic check initiated...");
+            runDiagnostics();
+            setInterval(runDiagnostics, 2500);
+        }, 1000);
 
     </script>
 </body>

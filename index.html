@@ -12,6 +12,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- OneSignal Web Push SDK integration -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(function() {
+            OneSignal.init({
+                appId: "de2e0fb2-af28-428c-99e3-21c2d83d2ad5",
+                welcomeNotification: {
+                    disable: false
+                }
+            });
+        });
+    </script>
+
+
+
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -243,11 +260,35 @@
                 // If unsubscribing, simply revert state
                 isSubscribed = false;
                 localStorage.setItem(storageKey, 'false');
+                if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
+                    try {
+                        OneSignal.User.PushSubscription.optOut();
+                    } catch (e) { console.error(e); }
+                }
                 updateSubUI();
                 return;
             }
 
-            // Request Notification permissions
+            // Try OneSignal subscription first if active
+            if (window.OneSignal && OneSignal.Notifications) {
+                try {
+                    const permission = await OneSignal.Notifications.requestPermission();
+                    if (permission === 'granted' || permission === true) {
+                        isSubscribed = true;
+                        localStorage.setItem(storageKey, 'true');
+                        updateSubUI();
+                        showSimulatedCampaign(
+                            "OneSignal Connected! 🔔", 
+                            "Web Push Notifications are active via OneSignal subscription manager."
+                        );
+                        return;
+                    }
+                } catch (e) {
+                    console.log("OneSignal error, falling back to local SW:", e);
+                }
+            }
+
+            // Request Notification permissions (local fallback)
             if (!('Notification' in window)) {
                 alert("This browser does not support push notifications.");
                 isSubscribed = true;

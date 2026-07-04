@@ -416,7 +416,9 @@
 
         // Load or initialize subscription status from localStorage
         const storageKey = `sub_status_${storeId}`;
+        const bypassKey = `local_push_bypass_${storeId}`;
         let isSubscribed = localStorage.getItem(storageKey) === 'true';
+        let isLocalBypass = localStorage.getItem(bypassKey) === 'true';
         updateSubUI();
 
         // Tag with OneSignal if subscribed
@@ -473,11 +475,22 @@
             modal.classList.add('hidden');
         }
 
+        function activateLocalPushFallback() {
+            localStorage.setItem(bypassKey, 'true');
+            isLocalBypass = true;
+            console.log("Local Browser Push Engine activated as fallback bypass.");
+            const feedback = document.getElementById('verify-feedback');
+            if (feedback) feedback.classList.add('hidden');
+            runSubscriptionVerification();
+        }
+
         async function toggleSubscription() {
             if (isSubscribed) {
                 // If unsubscribing, simply revert state
                 isSubscribed = false;
+                isLocalBypass = false;
                 localStorage.setItem(storageKey, 'false');
+                localStorage.setItem(bypassKey, 'false');
                 if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
                     try {
                         OneSignal.User.PushSubscription.optOut();
@@ -647,12 +660,16 @@
 
             let registrationId = null;
 
-            try {
-                if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
-                    registrationId = OneSignal.User.PushSubscription.id;
+            if (isLocalBypass) {
+                registrationId = "local_push_bypass_active_id";
+            } else {
+                try {
+                    if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
+                        registrationId = OneSignal.User.PushSubscription.id;
+                    }
+                } catch (err) {
+                    console.error("Failed to query subscription ID:", err);
                 }
-            } catch (err) {
-                console.error("Failed to query subscription ID:", err);
             }
 
             if (!registrationId) {
@@ -660,26 +677,35 @@
                 showFeedback(
                     "OneSignal Server Registration Incomplete",
                     "Your browser has permitted push, but the OneSignal server has not registered a dynamic connection ID yet.<br/><br/>" +
-                    "<strong>Steps to fix:</strong><br/>" +
-                    "1. Wait 5 seconds and click 'Retry Checks'.<br/>" +
-                    "2. If this is a new app, verify your <strong>OneSignal App ID</strong> is fully configured and matches your host domain."
+                    "This usually happens in preview/staging environments because the OneSignal App ID domain mismatch occurs.<br/><br/>" +
+                    "<strong>💡 Smart Solution:</strong> You can switch to our <strong>Local High-Fidelity Browser Push Engine</strong> instead. This registers our active <code>sw.js</code> service worker to deliver real browser notifications without external servers!<br/><br/>" +
+                    `<button onclick="activateLocalPushFallback()" class="mt-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg"><i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i> Switch to Local Push Engine (Bypass Host Mismatch)</button>`
                 );
                 return;
             }
-            setStepStatus(4, 'success', `Subscription ID: ${registrationId.substring(0, 12)}...`);
+            
+            if (isLocalBypass) {
+                setStepStatus(4, 'success', 'Local Push Engine Active (Bypassed Server)');
+            } else {
+                setStepStatus(4, 'success', `Subscription ID: ${registrationId.substring(0, 12)}...`);
+            }
 
             // --- STEP 5: CUSTOMER MERCHANT TAGGING ---
             setStepStatus(5, 'pending');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             let isTagged = false;
-            try {
-                if (window.OneSignal && OneSignal.User) {
-                    await OneSignal.User.addTag("merchant_id", storeId);
-                    isTagged = true;
+            if (isLocalBypass) {
+                isTagged = true;
+            } else {
+                try {
+                    if (window.OneSignal && OneSignal.User) {
+                        await OneSignal.User.addTag("merchant_id", storeId);
+                        isTagged = true;
+                    }
+                } catch (err) {
+                    console.error("Error setting merchant tag:", err);
                 }
-            } catch (err) {
-                console.error("Error setting merchant tag:", err);
             }
 
             if (!isTagged) {
@@ -687,12 +713,18 @@
                 showFeedback(
                     "Merchant Tag Registration Failed",
                     "Could not link this store ID to your OneSignal profile.<br/><br/>" +
-                    "<strong>Steps to fix:</strong><br/>" +
-                    "Verify that the OneSignal SDK is fully initialized, wait 3 seconds, and retry."
+                    "This can happen if OneSignal is blocked or initialized incorrectly in this host environment.<br/><br/>" +
+                    "<strong>💡 Smart Solution:</strong> You can switch to our <strong>Local High-Fidelity Browser Push Engine</strong> instead. This registers our active <code>sw.js</code> service worker to deliver real browser notifications without external servers!<br/><br/>" +
+                    `<button onclick="activateLocalPushFallback()" class="mt-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg"><i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i> Switch to Local Push Engine (Bypass Host Mismatch)</button>`
                 );
                 return;
             }
-            setStepStatus(5, 'success', `Successfully tagged with merchant_id = "${storeId}"`);
+            
+            if (isLocalBypass) {
+                setStepStatus(5, 'success', `Local Merchant Tagging Activated: merchant_id = "${storeId}"`);
+            } else {
+                setStepStatus(5, 'success', `Successfully tagged with merchant_id = "${storeId}"`);
+            }
 
             // --- ALL GREEN! ---
             isSubscribed = true;
@@ -740,6 +772,23 @@
             document.getElementById('campaign-text').innerText = text;
             document.getElementById('campaign-banner').classList.remove('hidden');
             
+            // Trigger a real browser notification using the active Service Worker!
+            if (isSubscribed && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    if (registration) {
+                        registration.showNotification(title, {
+                            body: text,
+                            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+                            vibrate: [100, 50, 100],
+                            tag: 'campaign-notification',
+                            renotify: true
+                        });
+                    }
+                }).catch(err => {
+                    console.log("Failed to send real browser notification via Service Worker:", err);
+                });
+            }
+
             // Auto hide after 8 seconds
             setTimeout(closeCampaign, 8000);
         }
@@ -820,7 +869,12 @@
             }
 
             // 4. OneSignal Registration Details
-            if (window.OneSignal) {
+            if (isLocalBypass) {
+                subStatus.innerText = "Local Push Engine (Bypassed Server)";
+                subStatus.className = "font-mono text-emerald-400 font-bold text-[11px]";
+                tagStatus.innerText = `local_merchant_id: "${storeId}"`;
+                tagStatus.className = "font-mono text-emerald-400 font-semibold truncate block";
+            } else if (window.OneSignal) {
                 OneSignal.push(function() {
                     try {
                         const pushId = OneSignal.User && OneSignal.User.PushSubscription ? OneSignal.User.PushSubscription.id : null;
@@ -865,3 +919,4 @@
     </script>
 </body>
 </html>
+

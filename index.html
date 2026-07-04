@@ -115,19 +115,22 @@
             <!-- Tabs/Sections inside Card -->
             <div class="space-y-4">
                 <!-- Status/Connect Section -->
-                <div id="connection-box" class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
-                            <i class="fa-solid fa-bell-ring"></i>
+                <div id="connection-box" class="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 flex flex-col gap-2">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+                                <i class="fa-solid fa-bell-ring"></i>
+                            </div>
+                            <div>
+                                <p id="sub-status-title" class="text-sm font-semibold">Keep Updated</p>
+                                <p id="sub-status-desc" class="text-[11px] text-slate-400">Subscribe for custom deals & updates</p>
+                            </div>
                         </div>
-                        <div>
-                            <p id="sub-status-title" class="text-sm font-semibold">Keep Updated</p>
-                            <p id="sub-status-desc" class="text-[11px] text-slate-400">Subscribe for custom deals & updates</p>
-                        </div>
+                        <button id="subscribe-btn" onclick="toggleSubscription()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 transition-colors duration-200">
+                            Subscribe
+                        </button>
                     </div>
-                    <button id="subscribe-btn" onclick="toggleSubscription()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 transition-colors duration-200">
-                        Subscribe
-                    </button>
+                    <div id="test-btn-container" class="w-full"></div>
                 </div>
 
                 <!-- Simulated Bill / Quick Pay Form -->
@@ -435,19 +438,32 @@
             const btn = document.getElementById('subscribe-btn');
             const title = document.getElementById('sub-status-title');
             const desc = document.getElementById('sub-status-desc');
+            const testBtnContainer = document.getElementById('test-btn-container');
 
             if (isSubscribed) {
-                btn.innerText = "Subscribed";
-                btn.className = "px-4 py-2 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20";
+                btn.innerText = "Unsubscribe";
+                btn.className = "px-4 py-2 rounded-xl text-xs font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all duration-200";
                 title.innerText = "Connected to Store";
                 title.className = "text-sm font-semibold text-emerald-400";
                 desc.innerText = "You will receive real-time updates and deals!";
+                
+                if (testBtnContainer) {
+                    testBtnContainer.innerHTML = `
+                        <button onclick="triggerLocalTestNotification()" class="w-full mt-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg border border-emerald-500/20">
+                            <i class="fa-solid fa-bell animate-bounce"></i> Send Test Notification
+                        </button>
+                    `;
+                }
             } else {
                 btn.innerText = "Subscribe";
                 btn.className = "px-4 py-2 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 transition-colors duration-200";
                 title.innerText = "Keep Updated";
                 title.className = "text-sm font-semibold text-slate-100";
                 desc.innerText = "Subscribe for custom deals & updates";
+                
+                if (testBtnContainer) {
+                    testBtnContainer.innerHTML = '';
+                }
             }
         }
 
@@ -766,27 +782,54 @@
             document.getElementById('payment-amount').value = '';
         }
 
+        function triggerLocalTestNotification() {
+            showSimulatedCampaign(
+                `🔔 Notification Test`,
+                `Congratulations! Your local high-fidelity push engine is connected and working perfectly.`
+            );
+        }
+
         // Simulated Announcement triggers
         function showSimulatedCampaign(title, text) {
             document.getElementById('campaign-title').innerText = title;
             document.getElementById('campaign-text').innerText = text;
             document.getElementById('campaign-banner').classList.remove('hidden');
             
-            // Trigger a real browser notification using the active Service Worker!
-            if (isSubscribed && 'serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(registration => {
-                    if (registration) {
-                        registration.showNotification(title, {
-                            body: text,
-                            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
-                            vibrate: [100, 50, 100],
-                            tag: 'campaign-notification',
-                            renotify: true
+            // Trigger a real browser notification!
+            if (isSubscribed && 'Notification' in window && Notification.permission === 'granted') {
+                try {
+                    // Method 1: HTML5 Notification API (Instant and extremely reliable in active tab context)
+                    const localNotification = new Notification(title, {
+                        body: text,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+                        vibrate: [100, 50, 100],
+                        tag: 'campaign-notification',
+                        renotify: true
+                    });
+                    console.log("Real browser notification displayed via HTML5 API.");
+                } catch (html5Err) {
+                    console.log("HTML5 Notification constructor blocked/failed. Falling back to Service Worker:", html5Err);
+                    
+                    // Method 2: Service Worker Fallback (Ideal for silent registration/background)
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(registration => {
+                            if (registration) {
+                                registration.showNotification(title, {
+                                    body: text,
+                                    icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+                                    vibrate: [100, 50, 100],
+                                    tag: 'campaign-notification',
+                                    renotify: true
+                                });
+                                console.log("Real browser notification displayed via Service Worker fallback.");
+                            }
+                        }).catch(swErr => {
+                            console.error("Service worker fallback failed:", swErr);
                         });
                     }
-                }).catch(err => {
-                    console.log("Failed to send real browser notification via Service Worker:", err);
-                });
+                }
+            } else {
+                console.log("Push notification skipped: isSubscribed=" + isSubscribed + ", permission=" + ( 'Notification' in window ? Notification.permission : 'unsupported' ));
             }
 
             // Auto hide after 8 seconds

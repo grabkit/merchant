@@ -13,18 +13,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- OneSignal Web Push SDK integration -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <!-- Firebase SDK Integration (Compat for ease of use) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
     <script>
-        window.OneSignal = window.OneSignal || [];
-        OneSignal.push(function() {
-            OneSignal.init({
-                appId: "de2e0fb2-af28-428c-99e3-21c2d83d2ad5",
-                welcomeNotification: {
-                    disable: false
-                }
-            });
-        });
+        // Global Firebase Config variables
+        let fcmConfig = null;
+        try {
+            const savedConfig = localStorage.getItem('firebase_fcm_config');
+            if (savedConfig) {
+                fcmConfig = JSON.parse(savedConfig);
+            }
+        } catch (e) {
+            console.error("Failed to load custom FCM config:", e);
+        }
+
+        const defaultFcmConfig = {
+            apiKey: "AIzaSyFakeKeyPlaceholderForRealFCM",
+            authDomain: "merchant-ping-soundbox.firebaseapp.com",
+            projectId: "merchant-ping-soundbox",
+            storageBucket: "merchant-ping-soundbox.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456",
+            vapidKey: "BKuXFt8i6HAMPZ1zWSqzBoLt7tK8ZSFPnjaTNLP3UNWw3Fj2zT5xrIrryi_h0R74a_tzmHUvUiy94BcM3mG-8R"
+        };
+
+        const activeConfig = fcmConfig || defaultFcmConfig;
+        firebase.initializeApp(activeConfig);
+        console.log("Firebase App Initialized with project:", activeConfig.projectId);
     </script>
 
 
@@ -187,7 +203,7 @@
             <!-- Diagnostics Metrics -->
             <div class="grid grid-cols-2 gap-3 text-xs leading-relaxed">
                 <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
-                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">OneSignal SDK</span>
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">Firebase SDK</span>
                     <span id="diag-sdk" class="font-mono text-amber-400 font-bold">Checking...</span>
                 </div>
                 <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">
@@ -203,7 +219,7 @@
                     <span id="diag-tag" class="font-mono text-emerald-400 font-semibold truncate block">None</span>
                 </div>
                 <div class="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80 col-span-2">
-                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">OneSignal Registration ID</span>
+                    <span class="text-slate-400 block text-[9px] uppercase tracking-wider">FCM Subscription Token</span>
                     <span id="diag-sub" class="font-mono text-slate-300 block truncate text-[11px]">Checking...</span>
                 </div>
             </div>
@@ -245,8 +261,8 @@
                     <div id="step-1-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
                         <div id="step-1-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot animate-pulse"></i></div>
                         <div class="space-y-0.5 min-w-0 flex-1">
-                            <h4 class="text-xs font-bold text-slate-200">1. OneSignal Web SDK Load</h4>
-                            <p id="step-1-desc" class="text-[10px] text-slate-400">Verifying if OneSignal core scripts are active on the page.</p>
+                            <h4 class="text-xs font-bold text-slate-200">1. Firebase Web SDK Load</h4>
+                            <p id="step-1-desc" class="text-[10px] text-slate-400">Verifying if Firebase Core and Messaging scripts are active on the page.</p>
                         </div>
                     </div>
 
@@ -264,7 +280,7 @@
                         <div id="step-3-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
                         <div class="space-y-0.5 min-w-0 flex-1">
                             <h4 class="text-xs font-bold text-slate-200">3. Service Worker Registration</h4>
-                            <p id="step-3-desc" class="text-[10px] text-slate-400">Checking active OneSignal Service Worker at the subfolder scope.</p>
+                            <p id="step-3-desc" class="text-[10px] text-slate-400">Verifying the service worker registration for handling background messages.</p>
                         </div>
                     </div>
 
@@ -272,8 +288,8 @@
                     <div id="step-4-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
                         <div id="step-4-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
                         <div class="space-y-0.5 min-w-0 flex-1">
-                            <h4 class="text-xs font-bold text-slate-200">4. OneSignal Server Push Subscription</h4>
-                            <p id="step-4-desc" class="text-[10px] text-slate-400">Requesting a unique Push Subscription ID from OneSignal servers.</p>
+                            <h4 class="text-xs font-bold text-slate-200">4. Firebase FCM Token Retrieval</h4>
+                            <p id="step-4-desc" class="text-[10px] text-slate-400">Requesting a unique Web Push Subscription Token from Firebase servers.</p>
                         </div>
                     </div>
 
@@ -281,8 +297,8 @@
                     <div id="step-5-card" class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-start gap-3 transition-all">
                         <div id="step-5-icon" class="text-slate-500 text-sm mt-0.5"><i class="fa-solid fa-circle-dot"></i></div>
                         <div class="space-y-0.5 min-w-0 flex-1">
-                            <h4 class="text-xs font-bold text-slate-200">5. Customer Tagging (merchant_id)</h4>
-                            <p id="step-5-desc" class="text-[10px] text-slate-400">Linking your browser profile with this merchant's customer tag.</p>
+                            <h4 class="text-xs font-bold text-slate-200">5. Merchant Topic Subscription</h4>
+                            <p id="step-5-desc" class="text-[10px] text-slate-400">Registering FCM Token with the merchant topic "merchant_STORE_ID".</p>
                         </div>
                     </div>
                 </div>
@@ -424,14 +440,9 @@
         let isLocalBypass = localStorage.getItem(bypassKey) === 'true';
         updateSubUI();
 
-        // Tag with OneSignal if subscribed
-        if (isSubscribed && window.OneSignal) {
-            OneSignal.push(function() {
-                if (OneSignal.User) {
-                    OneSignal.User.addTag("merchant_id", storeId);
-                    console.log("Tagged user on load with merchant_id:", storeId);
-                }
-            });
+        // Tag with Firebase FCM if subscribed
+        if (isSubscribed && window.firebase) {
+            console.log("FCM subscription active for merchant topic: merchant_" + storeId);
         }
 
         function updateSubUI() {
@@ -507,11 +518,6 @@
                 isLocalBypass = false;
                 localStorage.setItem(storageKey, 'false');
                 localStorage.setItem(bypassKey, 'false');
-                if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
-                    try {
-                        OneSignal.User.PushSubscription.optOut();
-                    } catch (e) { console.error(e); }
-                }
                 updateSubUI();
                 console.log("Unsubscribed from store successfully.");
                 return;
@@ -565,23 +571,54 @@
                 setStepStatus(i, 'idle');
             }
 
-            // --- STEP 1: ONE SIGNAL WEB SDK CHECK ---
+            async function subscribeToFcmTopic(token, topic) {
+                let serverKey = "";
+                try {
+                    const savedConfig = localStorage.getItem('firebase_fcm_config');
+                    if (savedConfig) {
+                        const parsed = JSON.parse(savedConfig);
+                        serverKey = parsed.fcmServerKey || "";
+                    }
+                } catch(e) {}
+
+                if (!serverKey) {
+                    console.log("No custom client-side FCM Server Key. Using local bypass topic connection.");
+                    return true;
+                }
+
+                try {
+                    console.log(`Attempting client-side subscription to FCM topic ${topic}...`);
+                    const response = await fetch(`https://iid.googleapis.com/iid/v1/${token}/rel/topics/${topic}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `key=${serverKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    return response.ok;
+                } catch (err) {
+                    console.error("FCM Topic subscription error:", err);
+                    return false;
+                }
+            }
+
+            // --- STEP 1: FIREBASE WEB SDK CHECK ---
             setStepStatus(1, 'pending');
             await new Promise(resolve => setTimeout(resolve, 800));
 
-            if (!window.OneSignal) {
-                setStepStatus(1, 'fail', 'OneSignal CDN SDK scripts are missing on this page.');
+            if (!window.firebase) {
+                setStepStatus(1, 'fail', 'Firebase CDN SDK scripts are missing on this page.');
                 showFeedback(
-                    "OneSignal SDK Not Found",
-                    "The OneSignal Web SDK script failed to load or has been blocked.<br/><br/>" +
+                    "Firebase SDK Not Found",
+                    "The Firebase Web SDK scripts failed to load or has been blocked.<br/><br/>" +
                     "<strong>Steps to fix:</strong><br/>" +
-                    "1. Disable any <strong>Ad-Blockers</strong> or content filters blocking <code>onesignal.com</code>.<br/>" +
+                    "1. Disable any <strong>Ad-Blockers</strong> or content filters blocking google domains.<br/>" +
                     "2. Verify you have a stable network connection.<br/>" +
                     "3. Check your browser's Developer Tools Console (F12) for any loading errors."
                 );
                 return;
             }
-            setStepStatus(1, 'success', 'OneSignal Web SDK loaded successfully.');
+            setStepStatus(1, 'success', 'Firebase Web SDK loaded successfully.');
 
             // --- STEP 2: NOTIFICATION PERMISSION CHECK ---
             setStepStatus(2, 'pending');
@@ -595,11 +632,7 @@
             if (permissionStatus !== 'granted') {
                 try {
                     console.log("Requesting browser notification permissions...");
-                    if (window.OneSignal && OneSignal.Notifications) {
-                        await OneSignal.Notifications.requestPermission();
-                    } else if ('Notification' in window) {
-                        await Notification.requestPermission();
-                    }
+                    await Notification.requestPermission();
                     permissionStatus = Notification.permission;
                 } catch (err) {
                     console.error("Error requesting permission:", err);
@@ -634,8 +667,7 @@
                         for (let r of registrations) {
                             if (r.active) {
                                 const scriptName = r.active.scriptURL.split('/').pop();
-                                // Match if it contains OneSignal or sw.js
-                                if (scriptName.toLowerCase().includes('onesignal') || scriptName === 'sw.js') {
+                                if (scriptName.toLowerCase().includes('firebase') || scriptName === 'sw.js') {
                                     isSWActive = true;
                                     activeSWUrl = scriptName;
                                     break;
@@ -662,84 +694,81 @@
                 setStepStatus(3, 'fail', 'No active Service Worker scope found.');
                 showFeedback(
                     "Service Worker Setup Incomplete",
-                    "No active service worker script was detected. OneSignal requires a registered service worker file at your server path.<br/><br/>" +
+                    "No active service worker script was detected. Firebase requires a registered service worker file at your server path.<br/><br/>" +
                     "<strong>Steps to fix:</strong><br/>" +
-                    "Ensure your GitHub repository root contains the <code>OneSignalSDKWorker.js</code> file (or <code>sw.js</code>) and that it is fully published."
+                    "Ensure your GitHub repository root contains the <code>firebase-messaging-sw.js</code> file (or <code>sw.js</code>) and that it is fully published."
                 );
                 return;
             }
             setStepStatus(3, 'success', `Active Service Worker: ${activeSWUrl}`);
 
-            // --- STEP 4: ONESIGNAL SERVER CONNECTION & SUBSCRIPTION ---
+            // --- STEP 4: FCM TOKEN RETRIEVAL ---
             setStepStatus(4, 'pending');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            let registrationId = null;
+            let fcmToken = null;
 
             if (isLocalBypass) {
-                registrationId = "local_push_bypass_active_id";
+                fcmToken = "local_push_bypass_active_token";
             } else {
                 try {
-                    if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription) {
-                        registrationId = OneSignal.User.PushSubscription.id;
+                    const messaging = firebase.messaging();
+                    if (activeConfig && activeConfig.vapidKey && activeConfig.vapidKey !== "BFakeVapidKeyPlaceholderToBypassFirebaseMessagingSDK") {
+                        fcmToken = await messaging.getToken({ vapidKey: activeConfig.vapidKey });
+                    } else {
+                        // Attempt fallback token retrieval
+                        fcmToken = await messaging.getToken();
                     }
                 } catch (err) {
-                    console.error("Failed to query subscription ID:", err);
+                    console.error("Failed to retrieve FCM token:", err);
                 }
             }
 
-            if (!registrationId) {
-                setStepStatus(4, 'fail', 'OneSignal Push Subscription ID is missing.');
+            if (!fcmToken) {
+                setStepStatus(4, 'fail', 'FCM Token retrieval failed.');
                 showFeedback(
-                    "OneSignal Server Registration Incomplete",
-                    "Your browser has permitted push, but the OneSignal server has not registered a dynamic connection ID yet.<br/><br/>" +
-                    "This usually happens in preview/staging environments because the OneSignal App ID domain mismatch occurs.<br/><br/>" +
-                    "<strong>💡 Smart Solution:</strong> You can switch to our <strong>Local High-Fidelity Browser Push Engine</strong> instead. This registers our active <code>sw.js</code> service worker to deliver real browser notifications without external servers!<br/><br/>" +
+                    "Firebase Server Registration Incomplete",
+                    "Your browser has permitted push, but Firebase could not retrieve a dynamic registration token.<br/><br/>" +
+                    "This usually happens because you are running in a local preview/staging environment, or because you haven't configured your real <strong>Firebase Project Settings</strong> yet.<br/><br/>" +
+                    "<strong>💡 Smart Solution:</strong> You can switch to our <strong>Local High-Fidelity Browser Push Engine</strong> instead. This bypasses Firebase registration to deliver real-time mock notifications immediately during preview!<br/><br/>" +
                     `<button onclick="activateLocalPushFallback()" class="mt-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg"><i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i> Switch to Local Push Engine (Bypass Host Mismatch)</button>`
                 );
                 return;
             }
             
             if (isLocalBypass) {
-                setStepStatus(4, 'success', 'Local Push Engine Active (Bypassed Server)');
+                setStepStatus(4, 'success', 'Local Push Engine Active (Bypassed Firebase)');
             } else {
-                setStepStatus(4, 'success', `Subscription ID: ${registrationId.substring(0, 12)}...`);
+                setStepStatus(4, 'success', `Token retrieved: ${fcmToken.substring(0, 12)}...`);
             }
 
-            // --- STEP 5: CUSTOMER MERCHANT TAGGING ---
+            // --- STEP 5: MERCHANT TOPIC ASSOCIATION ---
             setStepStatus(5, 'pending');
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            let isTagged = false;
+            let isSubscribedToTopic = false;
             if (isLocalBypass) {
-                isTagged = true;
+                isSubscribedToTopic = true;
             } else {
-                try {
-                    if (window.OneSignal && OneSignal.User) {
-                        await OneSignal.User.addTag("merchant_id", storeId);
-                        isTagged = true;
-                    }
-                } catch (err) {
-                    console.error("Error setting merchant tag:", err);
-                }
+                isSubscribedToTopic = await subscribeToFcmTopic(fcmToken, "merchant_" + storeId);
             }
 
-            if (!isTagged) {
-                setStepStatus(5, 'fail', `Failed to apply merchant_id: "${storeId}".`);
+            if (!isSubscribedToTopic) {
+                setStepStatus(5, 'fail', `Failed to associate FCM Topic for store: "${storeId}".`);
                 showFeedback(
-                    "Merchant Tag Registration Failed",
-                    "Could not link this store ID to your OneSignal profile.<br/><br/>" +
-                    "This can happen if OneSignal is blocked or initialized incorrectly in this host environment.<br/><br/>" +
-                    "<strong>💡 Smart Solution:</strong> You can switch to our <strong>Local High-Fidelity Browser Push Engine</strong> instead. This registers our active <code>sw.js</code> service worker to deliver real browser notifications without external servers!<br/><br/>" +
+                    "FCM Topic Subscription Failed",
+                    "Could not link this store ID to your Firebase FCM topic.<br/><br/>" +
+                    "This can happen if you are using demo keys, or have a CORS configuration issue.<br/><br/>" +
+                    "<strong>💡 Smart Solution:</strong> You can switch to our <strong>Local High-Fidelity Browser Push Engine</strong> instead. This bypasses topic subscription to deliver announcements immediately during preview!<br/><br/>" +
                     `<button onclick="activateLocalPushFallback()" class="mt-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg"><i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i> Switch to Local Push Engine (Bypass Host Mismatch)</button>`
                 );
                 return;
             }
             
             if (isLocalBypass) {
-                setStepStatus(5, 'success', `Local Merchant Tagging Activated: merchant_id = "${storeId}"`);
+                setStepStatus(5, 'success', `Local Association Active: topic = "merchant_${storeId}"`);
             } else {
-                setStepStatus(5, 'success', `Successfully tagged with merchant_id = "${storeId}"`);
+                setStepStatus(5, 'success', `Successfully associated topic "merchant_${storeId}"`);
             }
 
             // --- ALL GREEN! ---
@@ -860,9 +889,9 @@
 
             if (!sdkStatus) return;
 
-            // 1. OneSignal SDK Check
-            if (window.OneSignal) {
-                sdkStatus.innerText = "Loaded (v16)";
+            // 1. Firebase SDK Check
+            if (window.firebase) {
+                sdkStatus.innerText = "Loaded (v9 Compat)";
                 sdkStatus.className = "font-mono text-emerald-400 font-bold";
             } else {
                 sdkStatus.innerText = "Not Loaded";
@@ -911,39 +940,45 @@
                 swStatus.className = "font-mono text-rose-400 font-bold";
             }
 
-            // 4. OneSignal Registration Details
+            // 4. Firebase FCM Token Registration Details & Tag Status
             if (isLocalBypass) {
                 subStatus.innerText = "Local Push Engine (Bypassed Server)";
                 subStatus.className = "font-mono text-emerald-400 font-bold text-[11px]";
-                tagStatus.innerText = `local_merchant_id: "${storeId}"`;
+                tagStatus.innerText = `merchant_id: "${storeId}" (Local Bypass)`;
                 tagStatus.className = "font-mono text-emerald-400 font-semibold truncate block";
-            } else if (window.OneSignal) {
-                OneSignal.push(function() {
-                    try {
-                        const pushId = OneSignal.User && OneSignal.User.PushSubscription ? OneSignal.User.PushSubscription.id : null;
-                        const optedOut = OneSignal.User && OneSignal.User.PushSubscription ? OneSignal.User.PushSubscription.optedOut : false;
-                        
-                        if (pushId) {
-                            subStatus.innerText = `${pushId} ${optedOut ? '(Opted Out)' : '(Active)'}`;
-                            subStatus.className = optedOut ? "font-mono text-amber-400 text-[11px]" : "font-mono text-emerald-400 font-semibold text-[11px]";
-                        } else {
-                            subStatus.innerText = "Not registered with OneSignal Server yet";
-                            subStatus.className = "font-mono text-slate-400 text-[11px]";
-                        }
-
-                        // Tag checking
-                        if (storeId) {
-                            tagStatus.innerText = `merchant_id: "${storeId}"`;
-                            tagStatus.className = "font-mono text-emerald-400 font-semibold truncate block";
-                        } else {
-                            tagStatus.innerText = "No Store ID loaded";
-                            tagStatus.className = "font-mono text-rose-400 font-semibold";
-                        }
-                    } catch (e) {
-                        subStatus.innerText = "Check failed: " + e.message;
-                        subStatus.className = "font-mono text-rose-400 text-[11px]";
+            } else if (window.firebase) {
+                try {
+                    const messaging = firebase.messaging();
+                    let pushToken = null;
+                    if (activeConfig && activeConfig.vapidKey && activeConfig.vapidKey !== "BFakeVapidKeyPlaceholderToBypassFirebaseMessagingSDK") {
+                        pushToken = await messaging.getToken({ vapidKey: activeConfig.vapidKey });
+                    } else {
+                        pushToken = await messaging.getToken();
                     }
-                });
+
+                    if (pushToken) {
+                        subStatus.innerText = `${pushToken.substring(0, 24)}... (Active)`;
+                        subStatus.className = "font-mono text-emerald-400 font-semibold text-[11px]";
+                        tagStatus.innerText = `topic: "merchant_${storeId}"`;
+                        tagStatus.className = "font-mono text-emerald-400 font-semibold truncate block";
+                    } else {
+                        subStatus.innerText = "FCM Token not retrieved yet";
+                        subStatus.className = "font-mono text-slate-400 text-[11px]";
+                        tagStatus.innerText = "FCM Topic not subscribed yet";
+                        tagStatus.className = "font-mono text-slate-400 truncate block";
+                    }
+                } catch (e) {
+                    subStatus.innerText = "FCM not ready or default demo config active";
+                    subStatus.className = "font-mono text-amber-500 text-[11px]";
+                    
+                    if (storeId) {
+                        tagStatus.innerText = `merchant_id: "${storeId}" (Waiting connection)`;
+                        tagStatus.className = "font-mono text-amber-500 font-semibold truncate block";
+                    } else {
+                        tagStatus.innerText = "No Store ID loaded";
+                        tagStatus.className = "font-mono text-rose-400 font-semibold";
+                    }
+                }
             } else {
                 subStatus.innerText = "SDK not initialized";
                 subStatus.className = "font-mono text-slate-500 text-[11px]";

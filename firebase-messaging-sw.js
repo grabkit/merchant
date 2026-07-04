@@ -2,17 +2,27 @@
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-// Default Demo Configuration fallback so service worker doesn't crash on start
-const defaultFcmConfig = {
-    apiKey: "AIzaSyFakeKeyPlaceholderForRealFCM",
-    authDomain: "merchant-ping-soundbox.firebaseapp.com",
-    projectId: "merchant-ping-soundbox",
-    storageBucket: "merchant-ping-soundbox.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef123456"
+// Parse dynamic query parameters passed during registration to match custom configurations
+const urlParams = new URLSearchParams(location.search);
+const apiKey = urlParams.get('apiKey');
+const authDomain = urlParams.get('authDomain');
+const projectId = urlParams.get('projectId');
+const storageBucket = urlParams.get('storageBucket');
+const messagingSenderId = urlParams.get('messagingSenderId');
+const appId = urlParams.get('appId');
+
+// Fallback to default demo configuration if no query parameters are provided
+const activeFcmConfig = {
+    apiKey: apiKey || "AIzaSyFakeKeyPlaceholderForRealFCM",
+    authDomain: authDomain || "merchant-ping-soundbox.firebaseapp.com",
+    projectId: projectId || "merchant-ping-soundbox",
+    storageBucket: storageBucket || "merchant-ping-soundbox.appspot.com",
+    messagingSenderId: messagingSenderId || "123456789012",
+    appId: appId || "1:123456789012:web:abcdef123456"
 };
 
-firebase.initializeApp(defaultFcmConfig);
+console.log('[firebase-messaging-sw.js] Initializing with Sender ID:', activeFcmConfig.messagingSenderId);
+firebase.initializeApp(activeFcmConfig);
 
 const messaging = firebase.messaging();
 
@@ -30,3 +40,4 @@ messaging.onBackgroundMessage((payload) => {
 
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
+

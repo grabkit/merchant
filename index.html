@@ -662,28 +662,21 @@
 
             if ('serviceWorker' in navigator) {
                 try {
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    if (registrations && registrations.length > 0) {
-                        for (let r of registrations) {
-                            if (r.active) {
-                                const scriptName = r.active.scriptURL.split('/').pop();
-                                if (scriptName.toLowerCase().includes('firebase') || scriptName === 'sw.js') {
-                                    isSWActive = true;
-                                    activeSWUrl = scriptName;
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    // Register firebase-messaging-sw.js with dynamic parameters to ensure Sender ID always matches the website configuration
+                    const swQueryUrl = `firebase-messaging-sw.js` + 
+                        `?apiKey=${encodeURIComponent(activeConfig.apiKey || '')}` +
+                        `&authDomain=${encodeURIComponent(activeConfig.authDomain || '')}` +
+                        `&projectId=${encodeURIComponent(activeConfig.projectId || '')}` +
+                        `&storageBucket=${encodeURIComponent(activeConfig.storageBucket || '')}` +
+                        `&messagingSenderId=${encodeURIComponent(activeConfig.messagingSenderId || '')}` +
+                        `&appId=${encodeURIComponent(activeConfig.appId || '')}`;
 
-                    // If not registered, try dynamic registration
-                    if (!isSWActive) {
-                        console.log("Registering local Service Worker sw.js...");
-                        const reg = await navigator.serviceWorker.register('sw.js');
-                        if (reg) {
-                            isSWActive = true;
-                            activeSWUrl = "sw.js";
-                        }
+                    console.log("Registering FCM Service Worker with URL parameters:", swQueryUrl);
+                    const reg = await navigator.serviceWorker.register(swQueryUrl);
+                    if (reg) {
+                        isSWActive = true;
+                        activeSWUrl = "firebase-messaging-sw.js";
+                        console.log("Service Worker registered successfully!");
                     }
                 } catch (e) {
                     console.error("SW verification error:", e);
@@ -713,12 +706,14 @@
             } else {
                 try {
                     const messaging = firebase.messaging();
-                    if (activeConfig && activeConfig.vapidKey && activeConfig.vapidKey !== "BFakeVapidKeyPlaceholderToBypassFirebaseMessagingSDK") {
-                        fcmToken = await messaging.getToken({ vapidKey: activeConfig.vapidKey });
-                    } else {
-                        // Attempt fallback token retrieval
-                        fcmToken = await messaging.getToken();
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    const tokenOptions = {
+                        vapidKey: (activeConfig && activeConfig.vapidKey) ? activeConfig.vapidKey : "BKuXFt8i6HAMPZ1zWSqzBoLt7tK8ZSFPnjaTNLP3UNWw3Fj2zT5xrIrryi_h0R74a_tzmHUvUiy94BcM3mG-8R"
+                    };
+                    if (registration) {
+                        tokenOptions.serviceWorkerRegistration = registration;
                     }
+                    fcmToken = await messaging.getToken(tokenOptions);
                 } catch (err) {
                     console.error("Failed to retrieve FCM token:", err);
                 }
@@ -997,4 +992,5 @@
     </script>
 </body>
 </html>
+
 
